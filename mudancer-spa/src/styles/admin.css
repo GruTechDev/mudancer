@@ -1,0 +1,665 @@
+/**
+ * Mudancer Admin — Moving-Help–inspired theme (mh = moving helper style)
+ * Desktop first, responsive down to 320px. No Tailwind/Bootstrap.
+ */
+
+/* -------------------------------------------------------------------------
+   Stable viewport: prevent layout shift on reload, full-width layout
+   ------------------------------------------------------------------------- */
+html {
+  box-sizing: border-box;
+  height: 100%;
+  width: 100%;
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: inherit;
+}
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  width: 100%;
+  display: block;
+  background-color: #f1f5f9;
+}
+
+#root {
+  min-height: 100vh;
+  width: 100%;
+  display: block;
+}
+
+/* -------------------------------------------------------------------------
+   CSS variables (palette)
+   ------------------------------------------------------------------------- */
+:root {
+  --mh-primary: #1e5a9e;
+  --mh-primary-hover: #164a82;
+  --mh-secondary: #475569;
+  --mh-accent: #0ea5e9;
+  --mh-bg: #f1f5f9;
+  --mh-surface: #ffffff;
+  --mh-text: #1e293b;
+  --mh-text-muted: #64748b;
+  --mh-border: #e2e8f0;
+  --mh-success: #059669;
+  --mh-success-bg: #d1fae5;
+  --mh-warning: #d97706;
+  --mh-warning-bg: #fef3c7;
+  --mh-error: #dc2626;
+  --mh-error-bg: #fee2e2;
+  --mh-radius: 8px;
+  --mh-radius-sm: 6px;
+  --mh-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+  --mh-shadow-md: 0 4px 12px rgba(0, 0, 0, 0.08);
+  --mh-transition: 0.2s ease;
+}
+
+/* -------------------------------------------------------------------------
+   Global layout (app shell) — full viewport, stable size
+   ------------------------------------------------------------------------- */
+.mh-app {
+  min-height: 100vh;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  background-color: var(--mh-bg);
+  color: var(--mh-text);
+  font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  font-size: 16px;
+  line-height: 1.5;
+}
+
+.mh-main {
+  flex: 1 1 auto;
+  width: 100%;
+  min-height: 0;
+  padding: 1.5rem;
+  box-sizing: border-box;
+}
+
+/* -------------------------------------------------------------------------
+   Header (top nav)
+   ------------------------------------------------------------------------- */
+.mh-header {
+  width: 100%;
+  flex-shrink: 0;
+  background-color: var(--mh-surface);
+  border-bottom: 1px solid var(--mh-border);
+  box-shadow: var(--mh-shadow);
+  position: sticky;
+  top: 0;
+  z-index: 100;
+}
+
+.mh-header-inner {
+  width: 100%;
+  padding: 0.75rem 1.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  box-sizing: border-box;
+}
+
+.mh-header-brand {
+  font-weight: 700;
+  font-size: 1.25rem;
+  color: var(--mh-primary);
+  text-decoration: none;
+  transition: color var(--mh-transition);
+}
+
+.mh-header-brand:hover {
+  color: var(--mh-primary-hover);
+}
+
+.mh-header-nav {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.mh-header-link {
+  padding: 0.5rem 0.75rem;
+  color: var(--mh-secondary);
+  text-decoration: none;
+  border-radius: var(--mh-radius-sm);
+  font-weight: 500;
+  transition: background-color var(--mh-transition), color var(--mh-transition);
+}
+
+.mh-header-link:hover {
+  background-color: var(--mh-bg);
+  color: var(--mh-primary);
+}
+
+.mh-header-link.mh-header-link-active {
+  background-color: rgba(30, 90, 158, 0.1);
+  color: var(--mh-primary);
+}
+
+.mh-header-link-logout {
+  color: var(--mh-text-muted);
+  font-size: 0.9rem;
+}
+
+.mh-header-link-logout:hover {
+  color: var(--mh-error);
+  background-color: var(--mh-error-bg);
+}
+
+/* -------------------------------------------------------------------------
+   Footer
+   ------------------------------------------------------------------------- */
+.mh-footer {
+  width: 100%;
+  flex-shrink: 0;
+  background-color: var(--mh-surface);
+  border-top: 1px solid var(--mh-border);
+  padding: 1rem 1.5rem;
+  margin-top: auto;
+  box-sizing: border-box;
+}
+
+.mh-footer-inner {
+  width: 100%;
+  text-align: center;
+  font-size: 0.875rem;
+  color: var(--mh-text-muted);
+}
+
+/* -------------------------------------------------------------------------
+   Page container (entrance animation)
+   ------------------------------------------------------------------------- */
+.mh-page {
+  animation: mh-page-in 0.35s ease-out;
+}
+
+@keyframes mh-page-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.mh-page-title {
+  margin: 0 0 1.25rem;
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: var(--mh-text);
+}
+
+.mh-page-subtitle {
+  margin: 0 0 1.25rem;
+  font-size: 1rem;
+  color: var(--mh-text-muted);
+}
+
+/* -------------------------------------------------------------------------
+   Cards
+   ------------------------------------------------------------------------- */
+.mh-card {
+  background-color: var(--mh-surface);
+  border-radius: var(--mh-radius);
+  box-shadow: var(--mh-shadow);
+  padding: 1.5rem;
+  margin-bottom: 1.5rem;
+  transition: box-shadow var(--mh-transition), transform var(--mh-transition);
+}
+
+.mh-card:hover {
+  box-shadow: var(--mh-shadow-md);
+}
+
+.mh-card-title {
+  margin: 0 0 1rem;
+  font-size: 1.125rem;
+  font-weight: 600;
+  color: var(--mh-text);
+  padding-bottom: 0.75rem;
+  border-bottom: 1px solid var(--mh-border);
+}
+
+.mh-card-body {
+  margin: 0;
+}
+
+/* -------------------------------------------------------------------------
+   Tables
+   ------------------------------------------------------------------------- */
+.mh-table-wrap {
+  overflow-x: auto;
+  border-radius: var(--mh-radius);
+  box-shadow: var(--mh-shadow);
+  background-color: var(--mh-surface);
+  animation: mh-page-in 0.35s ease-out;
+}
+
+.mh-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.9375rem;
+}
+
+.mh-table th,
+.mh-table td {
+  padding: 0.75rem 1rem;
+  text-align: left;
+  border-bottom: 1px solid var(--mh-border);
+}
+
+.mh-table th {
+  background-color: var(--mh-bg);
+  font-weight: 600;
+  color: var(--mh-secondary);
+  white-space: nowrap;
+}
+
+.mh-table tbody tr {
+  transition: background-color var(--mh-transition);
+}
+
+.mh-table tbody tr:hover {
+  background-color: rgba(30, 90, 158, 0.04);
+}
+
+.mh-table tbody tr.mh-table-row-new {
+  background-color: var(--mh-warning-bg);
+}
+
+.mh-table tbody tr.mh-table-row-new:hover {
+  background-color: #fde68a;
+}
+
+.mh-table a {
+  color: var(--mh-primary);
+  text-decoration: none;
+  font-weight: 500;
+  transition: color var(--mh-transition);
+}
+
+.mh-table a:hover {
+  color: var(--mh-primary-hover);
+  text-decoration: underline;
+}
+
+.mh-table-empty {
+  padding: 2rem;
+  text-align: center;
+  color: var(--mh-text-muted);
+}
+
+/* Status badge */
+.mh-badge {
+  display: inline-block;
+  padding: 0.25rem 0.5rem;
+  border-radius: 9999px;
+  font-size: 0.8125rem;
+  font-weight: 500;
+}
+
+.mh-badge-new {
+  background-color: var(--mh-warning-bg);
+  color: var(--mh-warning);
+}
+
+.mh-badge-published {
+  background-color: var(--mh-success-bg);
+  color: var(--mh-success);
+}
+
+.mh-badge-default {
+  background-color: var(--mh-bg);
+  color: var(--mh-secondary);
+}
+
+/* -------------------------------------------------------------------------
+   Forms
+   ------------------------------------------------------------------------- */
+.mh-form-group {
+  margin-bottom: 1.25rem;
+}
+
+.mh-form-label {
+  display: block;
+  margin-bottom: 0.375rem;
+  font-weight: 500;
+  color: var(--mh-text);
+  font-size: 0.9375rem;
+}
+
+.mh-form-label-optional {
+  color: var(--mh-text-muted);
+  font-weight: 400;
+}
+
+.mh-form-input,
+.mh-form-select,
+.mh-form-textarea {
+  width: 100%;
+  padding: 0.625rem 0.75rem;
+  font-size: 1rem;
+  font-family: inherit;
+  color: var(--mh-text);
+  background-color: var(--mh-surface);
+  border: 1px solid var(--mh-border);
+  border-radius: var(--mh-radius-sm);
+  box-sizing: border-box;
+  transition: border-color var(--mh-transition), box-shadow var(--mh-transition);
+}
+
+.mh-form-input:focus,
+.mh-form-select:focus,
+.mh-form-textarea:focus {
+  outline: none;
+  border-color: var(--mh-primary);
+  box-shadow: 0 0 0 3px rgba(30, 90, 158, 0.15);
+}
+
+.mh-form-input::placeholder,
+.mh-form-textarea::placeholder {
+  color: var(--mh-text-muted);
+}
+
+.mh-form-textarea {
+  min-height: 100px;
+  resize: vertical;
+}
+
+.mh-form-section {
+  margin-bottom: 1.5rem;
+}
+
+.mh-form-section-title {
+  margin: 0 0 0.75rem;
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--mh-secondary);
+}
+
+/* -------------------------------------------------------------------------
+   Buttons
+   ------------------------------------------------------------------------- */
+.mh-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.625rem 1.25rem;
+  font-size: 1rem;
+  font-weight: 500;
+  font-family: inherit;
+  border-radius: var(--mh-radius-sm);
+  border: none;
+  cursor: pointer;
+  transition: background-color var(--mh-transition), transform var(--mh-transition), box-shadow var(--mh-transition);
+}
+
+.mh-button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.mh-button-primary {
+  background-color: var(--mh-primary);
+  color: white;
+}
+
+.mh-button-primary:hover:not(:disabled) {
+  background-color: var(--mh-primary-hover);
+  transform: translateY(-1px);
+  box-shadow: 0 2px 8px rgba(30, 90, 158, 0.35);
+}
+
+.mh-button-secondary {
+  background-color: var(--mh-surface);
+  color: var(--mh-secondary);
+  border: 1px solid var(--mh-border);
+}
+
+.mh-button-secondary:hover:not(:disabled) {
+  background-color: var(--mh-bg);
+  border-color: var(--mh-primary);
+  color: var(--mh-primary);
+}
+
+.mh-button-success {
+  background-color: var(--mh-success);
+  color: white;
+}
+
+.mh-button-success:hover:not(:disabled) {
+  background-color: #047857;
+  transform: translateY(-1px);
+  box-shadow: 0 2px 8px rgba(5, 150, 105, 0.35);
+}
+
+.mh-button-success:disabled {
+  background-color: var(--mh-text-muted);
+}
+
+.mh-button-link {
+  background: none;
+  color: var(--mh-primary);
+  text-decoration: none;
+  padding: 0.5rem 0;
+}
+
+.mh-button-link:hover:not(:disabled) {
+  text-decoration: underline;
+  transform: none;
+}
+
+.mh-form-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  margin-top: 1.5rem;
+  padding-top: 1rem;
+  border-top: 1px solid var(--mh-border);
+}
+
+/* -------------------------------------------------------------------------
+   Alerts / messages
+   ------------------------------------------------------------------------- */
+.mh-alert {
+  padding: 0.75rem 1rem;
+  border-radius: var(--mh-radius-sm);
+  margin-bottom: 1rem;
+  font-size: 0.9375rem;
+}
+
+.mh-alert-error {
+  background-color: var(--mh-error-bg);
+  color: var(--mh-error);
+  border: 1px solid #fecaca;
+}
+
+.mh-alert-info {
+  background-color: rgba(14, 165, 233, 0.1);
+  color: var(--mh-primary);
+  border: 1px solid rgba(14, 165, 233, 0.3);
+}
+
+/* -------------------------------------------------------------------------
+   Login page (centered card)
+   ------------------------------------------------------------------------- */
+.mh-login-wrap {
+  min-height: 60vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 2rem 1rem;
+}
+
+.mh-login-card {
+  width: 100%;
+  max-width: 400px;
+  background-color: var(--mh-surface);
+  border-radius: var(--mh-radius);
+  box-shadow: var(--mh-shadow-md);
+  padding: 2rem;
+  animation: mh-page-in 0.35s ease-out;
+}
+
+.mh-login-title {
+  margin: 0 0 0.5rem;
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: var(--mh-text);
+  text-align: center;
+}
+
+.mh-login-subtitle {
+  margin: 0 0 1.5rem;
+  font-size: 0.9375rem;
+  color: var(--mh-text-muted);
+  text-align: center;
+}
+
+/* -------------------------------------------------------------------------
+   Loading / empty state
+   ------------------------------------------------------------------------- */
+.mh-loading {
+  padding: 2rem;
+  text-align: center;
+  color: var(--mh-text-muted);
+}
+
+.mh-back-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  margin-bottom: 1rem;
+  color: var(--mh-primary);
+  text-decoration: none;
+  font-weight: 500;
+  transition: color var(--mh-transition);
+}
+
+.mh-back-link:hover {
+  color: var(--mh-primary-hover);
+}
+
+/* -------------------------------------------------------------------------
+   Responsive: tablet (768px – 1023px)
+   ------------------------------------------------------------------------- */
+@media (max-width: 1023px) {
+  .mh-main {
+    padding: 1.25rem;
+  }
+
+  .mh-header-inner {
+    padding: 0.75rem 1.25rem;
+  }
+
+  .mh-page-title {
+    font-size: 1.375rem;
+  }
+
+  .mh-card {
+    padding: 1.25rem;
+  }
+
+  .mh-table th,
+  .mh-table td {
+    padding: 0.625rem 0.75rem;
+    font-size: 0.875rem;
+  }
+}
+
+/* -------------------------------------------------------------------------
+   Responsive: mobile (< 768px)
+   ------------------------------------------------------------------------- */
+@media (max-width: 767px) {
+  .mh-main {
+    padding: 1rem;
+  }
+
+  .mh-header-inner {
+    padding: 0.625rem 1rem;
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .mh-header-nav {
+    justify-content: flex-start;
+  }
+
+  .mh-page-title {
+    font-size: 1.25rem;
+    margin-bottom: 1rem;
+  }
+
+  .mh-card {
+    padding: 1rem;
+    margin-bottom: 1rem;
+  }
+
+  .mh-table-wrap {
+    margin-left: -1rem;
+    margin-right: -1rem;
+    border-radius: 0;
+  }
+
+  .mh-table th,
+  .mh-table td {
+    padding: 0.5rem 0.75rem;
+    font-size: 0.8125rem;
+  }
+
+  .mh-form-actions {
+    flex-direction: column;
+  }
+
+  .mh-button {
+    width: 100%;
+    justify-content: center;
+  }
+
+  .mh-login-wrap {
+    padding: 1.5rem 1rem;
+    min-height: 50vh;
+  }
+
+  .mh-login-card {
+    padding: 1.5rem;
+  }
+
+  .mh-login-title {
+    font-size: 1.25rem;
+  }
+}
+
+/* -------------------------------------------------------------------------
+   Responsive: small mobile (320px+)
+   ------------------------------------------------------------------------- */
+@media (max-width: 480px) {
+  .mh-main {
+    padding: 0.75rem;
+  }
+
+  .mh-header-link {
+    padding: 0.5rem;
+    font-size: 0.9rem;
+  }
+
+  .mh-page-title {
+    font-size: 1.125rem;
+  }
+
+  .mh-table th,
+  .mh-table td {
+    padding: 0.4rem 0.5rem;
+    font-size: 0.75rem;
+  }
+}
