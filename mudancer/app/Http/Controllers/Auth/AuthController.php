@@ -50,4 +50,44 @@ class AuthController extends Controller
             ],
         ]);
     }
+
+    /**
+     * Provider login: email/password + role=provider → Sanctum token.
+     * POST /api/proveedor/login
+     */
+    public function providerLogin(Request $request): JsonResponse
+    {
+        $request->validate([
+            'email' => 'required|email',
+            'password' => 'required',
+        ]);
+
+        $user = User::where('email', $request->input('email'))->first();
+
+        if (! $user || ! Hash::check($request->input('password'), $user->password)) {
+            throw ValidationException::withMessages([
+                'email' => [__('auth.failed')],
+            ]);
+        }
+
+        if ($user->role !== 'provider') {
+            throw ValidationException::withMessages([
+                'email' => ['This account is not authorized for provider access.'],
+            ]);
+        }
+
+        $user->tokens()->where('name', 'provider')->delete();
+        $token = $user->createToken('provider')->plainTextToken;
+
+        return response()->json([
+            'token' => $token,
+            'token_type' => 'Bearer',
+            'user' => [
+                'id' => $user->id,
+                'name' => $user->name,
+                'email' => $user->email,
+                'role' => $user->role,
+            ],
+        ]);
+    }
 }

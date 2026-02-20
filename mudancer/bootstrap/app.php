@@ -24,6 +24,7 @@ return Application::configure(basePath: dirname(__DIR__))
             'admin' => \App\Http\Middleware\EnsureUserIsAdmin::class,
             'assume.admin' => \App\Http\Middleware\AssumeAdmin::class,
             'role' => \App\Http\Middleware\RoleMiddleware::class,
+            'provider.auth' => \App\Http\Middleware\EnsureProviderRole::class,
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {

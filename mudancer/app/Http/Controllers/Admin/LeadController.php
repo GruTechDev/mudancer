@@ -4,7 +4,8 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Http\Requests\UpdateLeadRequest;
-use App\Lead;
+use App\Models\Lead;
+use App\Models\Quote;
 use Illuminate\Http\JsonResponse;
 
 class LeadController extends Controller
@@ -101,6 +102,40 @@ class LeadController extends Controller
         return response()->json([
             'data' => $this->leadWithComputed($lead->fresh()),
         ]);
+    }
+
+    /**
+     * GET /api/admin/cotizadas — leads that have quotes and are not concluded.
+     * With quotes.provider, ordered by newest quote first, plus new_quotes count.
+     */
+    public function quotedLeads(): JsonResponse
+    {
+        $leads = Lead::query()
+            ->whereHas('quotes')
+            ->where('concluida', false)
+            ->withCount(['quotes as new_quotes' => fn ($q) => $q->where('vista', false)])
+            ->with('quotes.provider')
+            ->get()
+            ->sortByDesc(fn (Lead $lead) => $lead->quotes->max('created_at'))
+            ->values();
+
+        return response()->json(['data' => $leads]);
+    }
+
+    /**
+     * POST /api/admin/quotes/{quote}/asignar — set quote as selected and lead as adjudicated.
+     * Return quote with PDF links (placeholder when no PDFs generated yet).
+     */
+    public function assignQuote(Quote $quote): JsonResponse
+    {
+        $quote->update(['seleccionada' => true]);
+        $quote->lead->update(['adjudicada' => true]);
+
+        $quote->load(['lead', 'provider']);
+        $data = $quote->toArray();
+        $data['pdf_links'] = [];
+
+        return response()->json(['data' => $data]);
     }
 
     private function leadTableRow(Lead $lead): array

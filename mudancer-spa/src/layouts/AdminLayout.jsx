@@ -33,6 +33,12 @@ export default function AdminLayout() {
               Dashboard
             </Link>
             <Link
+              to="/admin/cotizadas"
+              className={`px-3 py-2 rounded-lg text-sm font-medium transition ${location.pathname.startsWith("/admin/cotizadas") ? "bg-primary-50 text-primary" : "text-gray-600 hover:bg-gray-100"}`}
+            >
+              Cotizadas
+            </Link>
+            <Link
               to="/admin/providers"
               className={`px-3 py-2 rounded-lg text-sm font-medium transition ${location.pathname.startsWith("/admin/providers") ? "bg-primary-50 text-primary" : "text-gray-600 hover:bg-gray-100"}`}
             >

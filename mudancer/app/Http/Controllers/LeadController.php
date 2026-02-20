@@ -2,9 +2,10 @@
 
 namespace App\Http\Controllers;
 
-use App\Lead;
+use App\Models\Lead;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
 
 class LeadController extends Controller
@@ -18,38 +19,27 @@ class LeadController extends Controller
 
     /**
      * Receive WPForms webhook and create a Lead.
-     * Maps WPForms webhook body keys (client_name, origin_state, etc.) to Lead model.
+     * Accepts flat keys (client_name, origin_state, ...) or WPForms fields array.
+     * POST /api/webhook/wpforms
      */
     public function receiveFromWPForms(Request $request): JsonResponse
     {
-        $request->validate([
-            'client_name' => 'nullable|string',
-            'client_email' => 'nullable|string',
-            'client_phone' => 'nullable|string',
-            'client_ideal_date' => 'nullable',
-            'origin_state' => 'nullable|string',
-            'origin_city' => 'nullable|string',
-            'origin_floor' => 'nullable|string',
-            'origin_haulage' => 'nullable|string',
-            'destination_state' => 'nullable|string',
-            'destination_city' => 'nullable|string',
-            'destination_floor' => 'nullable|string',
-            'client_invent' => 'nullable|string',
-            'client_packing' => 'nullable|string',
-            'client_items' => 'nullable|string',
-            'client_other_item' => 'nullable|string',
-            'client_service_modality' => 'nullable|string',
-            'client_safe_mode' => 'nullable|string',
-            'client_insurance_val' => 'nullable|numeric',
-            'client_terms' => 'nullable|string',
-        ]);
+        Log::info('WPForms webhook received', ['payload' => $request->all()]);
 
-        \Log::info('WPForms webhook:', $request->all());
+        $input = $request->all();
+
+        // WPForms sometimes sends { "fields": [ {"id": 1, "value": "..."}, ... ] }
+        if (isset($input['fields']) && is_array($input['fields'])) {
+            $input = $this->mapFieldsArrayToFlat($input['fields'], $input);
+        }
+
+        $request->merge($input);
 
         $leadId = 'LEAD' . strtoupper(Str::random(6)) . time();
 
         $idealDate = $request->input('client_ideal_date');
         $dateStr = is_array($idealDate) ? ($idealDate['value'] ?? '') : (string) $idealDate;
+
 
         $telefono = preg_replace('/[^0-9]/', '', (string) $request->input('client_phone', ''));
         $telefono = strlen($telefono) > 10 ? substr($telefono, -10) : $telefono;
@@ -68,38 +58,71 @@ class LeadController extends Controller
         ]);
         $observaciones = implode("\n", $observacionesParts) ?: null;
 
-        Lead::create([
-            'lead_id' => $leadId,
-            'nombre_cliente' => (string) $request->input('client_name', ''),
-            'email_cliente' => (string) $request->input('client_email', ''),
-            'telefono_cliente' => $telefono,
-            'estado_origen' => (string) $request->input('origin_state', ''),
-            'localidad_origen' => (string) ($request->input('origin_city') ?? ''),
-            'colonia_origen' => '',
-            'piso_origen' => $this->nullIfEmpty($request->input('origin_floor')),
-            'elevador_origen' => false,
-            'acarreo_origen' => 30,
-            'estado_destino' => (string) $request->input('destination_state', ''),
-            'localidad_destino' => (string) ($request->input('destination_city') ?? ''),
-            'colonia_destino' => '',
-            'piso_destino' => $this->nullIfEmpty($request->input('destination_floor')),
-            'elevador_destino' => false,
-            'acarreo_destino' => 30,
-            'empaque' => (string) $request->input('client_packing', ''),
-            'fecha_recoleccion' => $this->parseSpanishDate($dateStr),
-            'tiempo_estimado' => '',
-            'modalidad' => (string) $request->input('client_service_modality', ''),
-            'seguro' => $request->filled('client_insurance_val') ? (float) $request->input('client_insurance_val') : null,
-            'inventario' => (string) $request->input('client_invent', ''),
-            'articulos_delicados' => $articulos !== '' ? $articulos : null,
-            'observaciones' => $observaciones,
-            'publicada' => false,
-            'adjudicada' => false,
-            'concluida' => false,
-            'vista' => false,
-        ]);
+        try {
+            Lead::create([
+                'lead_id' => $leadId,
+                'nombre_cliente' => (string) $request->input('client_name', ''),
+                'email_cliente' => (string) $request->input('client_email', ''),
+                'telefono_cliente' => $telefono,
+                'estado_origen' => (string) $request->input('origin_state', ''),
+                'localidad_origen' => (string) ($request->input('origin_city') ?? ''),
+                'colonia_origen' => '',
+                'piso_origen' => $this->nullIfEmpty($request->input('origin_floor')),
+                'elevador_origen' => false,
+                'acarreo_origen' => 30,
+                'estado_destino' => (string) $request->input('destination_state', ''),
+                'localidad_destino' => (string) ($request->input('destination_city') ?? ''),
+                'colonia_destino' => '',
+                'piso_destino' => $this->nullIfEmpty($request->input('destination_floor')),
+                'elevador_destino' => false,
+                'acarreo_destino' => 30,
+                'empaque' => (string) $request->input('client_packing', ''),
+                'fecha_recoleccion' => $this->parseSpanishDate($dateStr),
+                'tiempo_estimado' => '',
+                'modalidad' => (string) $request->input('client_service_modality', ''),
+                'seguro' => $request->filled('client_insurance_val') ? (float) $request->input('client_insurance_val') : null,
+                'inventario' => (string) $request->input('client_invent', ''),
+                'articulos_delicados' => $articulos !== '' ? $articulos : null,
+                'observaciones' => $observaciones,
+                'publicada' => false,
+                'adjudicada' => false,
+                'concluida' => false,
+                'vista' => false,
+            ]);
+        } catch (\Throwable $e) {
+            Log::error('WPForms webhook Lead::create failed', ['error' => $e->getMessage(), 'trace' => $e->getTraceAsString()]);
+            throw $e;
+        }
 
+        Log::info('WPForms webhook lead created', ['lead_id' => $leadId]);
         return response()->json(['success' => true, 'lead_id' => $leadId]);
+    }
+
+    /**
+     * Map WPForms "fields" array to flat keys we expect.
+     * WPForms may send fields by id/label; map by position or by name when present.
+     */
+    private function mapFieldsArrayToFlat(array $fields, array $existing): array
+    {
+        $flat = $existing;
+        $byIndex = [
+            'client_name', 'client_email', 'client_phone', 'client_ideal_date',
+            'origin_state', 'origin_city', 'origin_floor', 'origin_haulage',
+            'destination_state', 'destination_city', 'destination_floor', 'destination_haulage',
+            'client_packing', 'client_items', 'client_other_item', 'client_invent',
+            'client_service_modality', 'client_safe_mode', 'client_insurance_val', 'client_terms',
+        ];
+        foreach ($fields as $i => $field) {
+            $value = is_array($field) ? ($field['value'] ?? $field['values'][0] ?? '') : (string) $field;
+            if (isset($field['name']) && is_string($field['name'])) {
+                $flat[$field['name']] = $value;
+            } elseif (isset($field['key']) && is_string($field['key'])) {
+                $flat[$field['key']] = $value;
+            } elseif (isset($byIndex[$i])) {
+                $flat[$byIndex[$i]] = $value;
+            }
+        }
+        return $flat;
     }
 
     private function nullIfEmpty(mixed $value): ?string

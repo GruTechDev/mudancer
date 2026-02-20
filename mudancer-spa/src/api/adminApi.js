@@ -44,3 +44,16 @@ export async function getProviders() {
   const { data } = await api.get("/admin/providers");
   return Array.isArray(data) ? data : [];
 }
+
+/** GET /api/admin/cotizadas — leads with quotes (!concluida), new_quotes count. */
+export async function getCotizadas() {
+  const { data } = await api.get("/admin/cotizadas");
+  const list = data?.data;
+  return Array.isArray(list) ? list : [];
+}
+
+/** POST /api/admin/quotes/{quote}/asignar — set quote selected, lead adjudicated; returns quote with pdf_links. */
+export async function assignQuote(quoteId) {
+  const { data } = await api.post(`/admin/quotes/${quoteId}/asignar`);
+  return data?.data ?? null;
+}
