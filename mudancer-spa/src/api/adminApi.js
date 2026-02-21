@@ -60,15 +60,22 @@ export async function updateProvider(id, body) {
   return data;
 }
 
-/** GET /api/admin/cotizadas — leads with quotes (!concluida), new_quotes count. */
+/** GET /api/admin/cotizadas — published, non-adjudicated leads with quotes. */
 export async function getCotizadas() {
   const { data } = await api.get("/admin/cotizadas");
   const list = data?.data;
   return Array.isArray(list) ? list : [];
 }
 
-/** POST /api/admin/quotes/{quote}/asignar — set quote selected, lead adjudicated; returns quote with pdf_links. */
+/** GET /api/admin/ordenes — adjudicated leads with their selected quote. */
+export async function getOrdenes() {
+  const { data } = await api.get("/admin/ordenes");
+  const list = data?.data;
+  return Array.isArray(list) ? list : [];
+}
+
+/** POST /api/admin/quotes/{quote}/asignar — assign quote → moves lead to Orders. */
 export async function assignQuote(quoteId) {
   const { data } = await api.post(`/admin/quotes/${quoteId}/asignar`);
-  return data?.data ?? null;
+  return data ?? null;
 }

@@ -26,6 +26,7 @@ Route::prefix('admin')->group(function () {
         Route::post('leads/{id}/adjudicar', [AdminLeadController::class, 'adjudicar']);
         Route::post('leads/{id}/concluir', [AdminLeadController::class, 'concluir']);
         Route::get('cotizadas', [AdminLeadController::class, 'quotedLeads']);
+        Route::get('ordenes', [AdminLeadController::class, 'ordenes']);
         Route::post('quotes/{quote}/asignar', [AdminLeadController::class, 'assignQuote']);
 
         Route::apiResource('providers', AdminProviderController::class);

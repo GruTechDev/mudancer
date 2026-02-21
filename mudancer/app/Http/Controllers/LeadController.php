@@ -35,8 +35,28 @@ class LeadController extends Controller
 
         // ── Validate required fields ─────────────────────────────────────────
         $request->validate([
+            'client_phone' => ['required', 'regex:/^[0-9\s\-\+\(\)]{7,20}$/'],
+        ], [
+            'client_phone.required' => 'Client phone is required.',
+            'client_phone.regex'    => 'Client phone must be a valid phone number.',
+        ]);
+
+        // ── Duplicate check by normalised phone number ────────────────────────
+        $phoneRaw  = preg_replace('/[^0-9]/', '', (string) $request->input('client_phone', ''));
+        $phoneFull = strlen($phoneRaw) > 10 ? substr($phoneRaw, -10) : $phoneRaw;
+        $phoneNorm = str_pad($phoneFull ?: '0000000000', 10, '0');
+
+        if (Lead::where('telefono_cliente', $phoneNorm)->exists()) {
+            Log::warning('Duplicate lead rejected', ['phone' => $phoneNorm]);
+            return response()->json([
+                'success' => false,
+                'error'   => 'duplicate',
+                'message' => 'A lead with this phone number already exists.',
+            ], 409);
+        }
+
+        $request->validate([
             'client_name'        => 'required|string|max:255',
-            'client_phone'       => ['required', 'regex:/^[0-9\s\-\+\(\)]{7,20}$/'],
             'client_email'       => 'required|email',
             'client_ideal_date'  => 'required',
             'origin_state'       => 'required|string|max:255',
@@ -46,8 +66,6 @@ class LeadController extends Controller
             'client_invent'      => 'required|string',
         ], [
             'client_name.required'       => 'Client name is required.',
-            'client_phone.required'      => 'Client phone is required.',
-            'client_phone.regex'         => 'Client phone must be a valid phone number.',
             'client_email.required'      => 'Client email is required.',
             'client_email.email'         => 'Client email must be a valid email address.',
             'client_ideal_date.required' => 'Ideal date is required.',
@@ -67,10 +85,8 @@ class LeadController extends Controller
         $idealDate = $request->input('client_ideal_date');
         $dateStr   = is_array($idealDate) ? ($idealDate['value'] ?? '') : (string) $idealDate;
 
-        // Keep only digits from phone, normalise to 10 chars
-        $telefono = preg_replace('/[^0-9]/', '', (string) $request->input('client_phone', ''));
-        $telefono = strlen($telefono) > 10 ? substr($telefono, -10) : $telefono;
-        $telefono = str_pad($telefono ?: '0000000000', 10, '0');
+        // $phoneNorm was already computed during duplicate check
+        $telefono = $phoneNorm;
 
         // Merge items fields
         $articulos = trim((string) $request->input('client_items', ''));
