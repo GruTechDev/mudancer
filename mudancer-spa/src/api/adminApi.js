@@ -4,8 +4,8 @@
 
 import api from "./client";
 
-export async function login(email, password) {
-  const { data } = await api.post("/admin/login", { email, password });
+export async function login(identifier, password) {
+  const { data } = await api.post("/admin/login", { identifier, password });
   return data;
 }
 
@@ -40,9 +40,24 @@ export async function concluirLead(id) {
   return data?.data ?? null;
 }
 
-export async function getProviders() {
-  const { data } = await api.get("/admin/providers");
-  return Array.isArray(data) ? data : [];
+export async function getProviders({ page = 1, search = "", searchBy = "nombre", perPage = 10 } = {}) {
+  const params = new URLSearchParams({ page, per_page: perPage });
+  if (search.trim()) {
+    params.append("search", search.trim());
+    params.append("search_by", searchBy);
+  }
+  const { data } = await api.get(`/admin/providers?${params}`);
+  return data; // Laravel paginated: { data: [], current_page, last_page, total, ... }
+}
+
+export async function createProvider(body) {
+  const { data } = await api.post("/admin/providers", body);
+  return data;
+}
+
+export async function updateProvider(id, body) {
+  const { data } = await api.put(`/admin/providers/${id}`, body);
+  return data;
 }
 
 /** GET /api/admin/cotizadas — leads with quotes (!concluida), new_quotes count. */

@@ -18,21 +18,29 @@ class AuthController extends Controller
     public function adminLogin(Request $request): JsonResponse
     {
         $request->validate([
-            'email' => 'required|email',
-            'password' => 'required',
+            'identifier' => 'required|string',
+            'password'   => 'required|string|min:6',
+        ], [
+            'identifier.required' => 'Username or email is required.',
+            'password.required'   => 'Password is required.',
+            'password.min'        => 'Password must be at least 6 characters.',
         ]);
 
-        $user = User::where('email', $request->input('email'))->first();
+        $identifier = $request->input('identifier');
+
+        $user = User::where('email', $identifier)
+            ->orWhere('name', $identifier)
+            ->first();
 
         if (! $user || ! Hash::check($request->input('password'), $user->password)) {
             throw ValidationException::withMessages([
-                'email' => [__('auth.failed')],
+                'identifier' => ['These credentials do not match our records.'],
             ]);
         }
 
         if ($user->role !== 'admin') {
             throw ValidationException::withMessages([
-                'email' => ['This account is not authorized for admin access.'],
+                'identifier' => ['This account is not authorized for admin access.'],
             ]);
         }
 
@@ -43,10 +51,10 @@ class AuthController extends Controller
             'token' => $token,
             'token_type' => 'Bearer',
             'user' => [
-                'id' => $user->id,
-                'name' => $user->name,
+                'id'    => $user->id,
+                'name'  => $user->name,
                 'email' => $user->email,
-                'role' => $user->role,
+                'role'  => $user->role,
             ],
         ]);
     }

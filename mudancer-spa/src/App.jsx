@@ -4,7 +4,7 @@ import ProveedorLayout from "./layouts/ProveedorLayout";
 import RequireAdminAuth from "./components/RequireAdminAuth";
 import RequireProveedorAuth from "./components/RequireProveedorAuth";
 import AdminLogin from "./pages/admin/Login";
-import AdminDashboard from "./pages/admin/Dashboard";
+import AdminLeadsList from "./pages/admin/Dashboard";
 import AdminLeadDetail from "./pages/admin/LeadDetail";
 import Providers from "./pages/admin/Providers";
 import Cotizadas from "./pages/admin/Cotizadas";
@@ -21,13 +21,20 @@ function App() {
       <Route path="/admin" element={<AdminLayout />}>
         <Route path="login" element={<AdminLogin />} />
         <Route element={<RequireAdminAuth />}>
-          <Route path="dashboard" element={<AdminDashboard />} />
+          {/* Leads section */}
+          <Route path="leads"    element={<AdminLeadsList />} />
           <Route path="leads/:id" element={<AdminLeadDetail />} />
-          <Route path="cotizadas" element={<Cotizadas />} />
+          {/* Quotes section */}
+          <Route path="cotizadas"     element={<Cotizadas />} />
           <Route path="cotizadas/:id" element={<CotizadasDetail />} />
+          {/* Orders — placeholder redirects to cotizadas for now */}
+          <Route path="orders" element={<Navigate to="/admin/cotizadas" replace />} />
+          {/* Suppliers */}
           <Route path="providers" element={<Providers />} />
+          {/* Legacy dashboard → redirect to leads */}
+          <Route path="dashboard" element={<Navigate to="/admin/leads" replace />} />
         </Route>
-        <Route index element={<Navigate to="/admin/dashboard" replace />} />
+        <Route index element={<Navigate to="/admin/leads" replace />} />
       </Route>
 
       <Route path="/proveedor" element={<ProveedorLayout />}>
@@ -35,7 +42,7 @@ function App() {
         <Route element={<RequireProveedorAuth />}>
           <Route path="dashboard" element={<ProveedorDashboard />} />
           <Route path="leads/:id" element={<ProveedorLeadDetail />} />
-          <Route path="ordenes" element={<Ordenes />} />
+          <Route path="ordenes"   element={<Ordenes />} />
         </Route>
         <Route index element={<Navigate to="/proveedor/dashboard" replace />} />
       </Route>

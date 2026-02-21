@@ -19,7 +19,6 @@ class LeadController extends Controller
 
     /**
      * Receive WPForms webhook and create a Lead.
-     * Accepts flat keys (client_name, origin_state, ...) or WPForms fields array.
      * POST /api/webhook/wpforms
      */
     public function receiveFromWPForms(Request $request): JsonResponse
@@ -28,99 +27,126 @@ class LeadController extends Controller
 
         $input = $request->all();
 
-        // WPForms sometimes sends { "fields": [ {"id": 1, "value": "..."}, ... ] }
+        // WPForms may send { "fields": [...] } array format
         if (isset($input['fields']) && is_array($input['fields'])) {
             $input = $this->mapFieldsArrayToFlat($input['fields'], $input);
+            $request->merge($input);
         }
 
-        $request->merge($input);
+        // ── Validate required fields ─────────────────────────────────────────
+        $request->validate([
+            'client_name'        => 'required|string|max:255',
+            'client_phone'       => ['required', 'regex:/^[0-9\s\-\+\(\)]{7,20}$/'],
+            'client_email'       => 'required|email',
+            'client_ideal_date'  => 'required',
+            'origin_state'       => 'required|string|max:255',
+            'origin_city'        => 'required|string|max:255',
+            'destination_state'  => 'required|string|max:255',
+            'destination_city'   => 'required|string|max:255',
+            'client_invent'      => 'required|string',
+        ], [
+            'client_name.required'       => 'Client name is required.',
+            'client_phone.required'      => 'Client phone is required.',
+            'client_phone.regex'         => 'Client phone must be a valid phone number.',
+            'client_email.required'      => 'Client email is required.',
+            'client_email.email'         => 'Client email must be a valid email address.',
+            'client_ideal_date.required' => 'Ideal date is required.',
+            'origin_state.required'      => 'Origin state is required.',
+            'origin_city.required'       => 'Origin city is required.',
+            'destination_state.required' => 'Destination state is required.',
+            'destination_city.required'  => 'Destination city is required.',
+            'client_invent.required'     => 'Inventory is required.',
+        ]);
 
-        $leadId = 'LEAD' . strtoupper(Str::random(6)) . time();
+        // ── Generate unique 11-char alphanumeric lead ID ──────────────────────
+        do {
+            $leadId = strtoupper(Str::random(11));
+        } while (Lead::where('lead_id', $leadId)->exists());
 
+        // ── Parse & normalise fields ──────────────────────────────────────────
         $idealDate = $request->input('client_ideal_date');
-        $dateStr = is_array($idealDate) ? ($idealDate['value'] ?? '') : (string) $idealDate;
+        $dateStr   = is_array($idealDate) ? ($idealDate['value'] ?? '') : (string) $idealDate;
 
-
+        // Keep only digits from phone, normalise to 10 chars
         $telefono = preg_replace('/[^0-9]/', '', (string) $request->input('client_phone', ''));
         $telefono = strlen($telefono) > 10 ? substr($telefono, -10) : $telefono;
-        $telefono = $telefono ?: '0000000000';
+        $telefono = str_pad($telefono ?: '0000000000', 10, '0');
 
+        // Merge items fields
         $articulos = trim((string) $request->input('client_items', ''));
-        $otro = trim((string) $request->input('client_other_item', ''));
+        $otro      = trim((string) $request->input('client_other_item', ''));
         if ($otro !== '') {
             $articulos = $articulos !== '' ? $articulos . ' || ' . $otro : $otro;
         }
 
-        $observacionesParts = array_filter([
-            $request->filled('origin_haulage') ? 'Acarreo origen: ' . $request->input('origin_haulage') : null,
-            $request->filled('client_safe_mode') ? 'Seguro modo: ' . $request->input('client_safe_mode') : null,
-            $request->filled('client_terms') ? $request->input('client_terms') : null,
+        // Build observaciones from optional fields
+        $obsParts = array_filter([
+            $request->filled('origin_haulage')    ? 'Origin haulage: '   . $request->input('origin_haulage')    : null,
+            $request->filled('destination_haulage')? 'Dest. haulage: '   . $request->input('destination_haulage') : null,
+            $request->filled('client_safe_mode')  ? 'Insurance mode: '  . $request->input('client_safe_mode')  : null,
+            $request->filled('client_packing')    ? 'Packing: '         . $request->input('client_packing')    : null,
         ]);
-        $observaciones = implode("\n", $observacionesParts) ?: null;
+        $observaciones = implode("\n", $obsParts) ?: null;
 
         try {
             Lead::create([
-                'lead_id' => $leadId,
-                'nombre_cliente' => (string) $request->input('client_name', ''),
-                'email_cliente' => (string) $request->input('client_email', ''),
-                'telefono_cliente' => $telefono,
-                'estado_origen' => (string) $request->input('origin_state', ''),
-                'localidad_origen' => (string) ($request->input('origin_city') ?? ''),
-                'colonia_origen' => '',
-                'piso_origen' => $this->nullIfEmpty($request->input('origin_floor')),
-                'elevador_origen' => false,
-                'acarreo_origen' => 30,
-                'estado_destino' => (string) $request->input('destination_state', ''),
-                'localidad_destino' => (string) ($request->input('destination_city') ?? ''),
-                'colonia_destino' => '',
-                'piso_destino' => $this->nullIfEmpty($request->input('destination_floor')),
-                'elevador_destino' => false,
-                'acarreo_destino' => 30,
-                'empaque' => (string) $request->input('client_packing', ''),
-                'fecha_recoleccion' => $this->parseSpanishDate($dateStr),
-                'tiempo_estimado' => '',
-                'modalidad' => (string) $request->input('client_service_modality', ''),
-                'seguro' => $request->filled('client_insurance_val') ? (float) $request->input('client_insurance_val') : null,
-                'inventario' => (string) $request->input('client_invent', ''),
-                'articulos_delicados' => $articulos !== '' ? $articulos : null,
-                'observaciones' => $observaciones,
-                'publicada' => false,
-                'adjudicada' => false,
-                'concluida' => false,
-                'vista' => false,
+                'lead_id'            => $leadId,
+                'nombre_cliente'     => $request->input('client_name'),
+                'email_cliente'      => $request->input('client_email'),
+                'telefono_cliente'   => $telefono,
+                'estado_origen'      => $request->input('origin_state'),
+                'localidad_origen'   => $request->input('origin_city'),
+                'colonia_origen'     => '',
+                'piso_origen'        => $this->nullIfEmpty($request->input('origin_floor')),
+                'elevador_origen'    => $this->parseBool($request->input('origin_elevator')),
+                'acarreo_origen'     => $this->parseMeters($request->input('origin_haulage')),
+                'estado_destino'     => $request->input('destination_state'),
+                'localidad_destino'  => $request->input('destination_city'),
+                'colonia_destino'    => '',
+                'piso_destino'       => $this->nullIfEmpty($request->input('destination_floor')),
+                'elevador_destino'   => $this->parseBool($request->input('destination_elevator')),
+                'acarreo_destino'    => $this->parseMeters($request->input('destination_haulage')),
+                'empaque'            => (string) $request->input('client_packing', ''),
+                'fecha_recoleccion'  => $this->parseSpanishDate($dateStr),
+                'tiempo_estimado'    => '',
+                'modalidad'          => (string) $request->input('client_service_modality', ''),
+                'seguro'             => $request->filled('client_insurance_val') ? (float) $request->input('client_insurance_val') : null,
+                'inventario'         => $request->input('client_invent'),
+                'articulos_delicados'=> $articulos !== '' ? $articulos : null,
+                'observaciones'      => $observaciones,
+                'publicada'          => false,
+                'adjudicada'         => false,
+                'concluida'          => false,
+                'vista'              => false,
             ]);
         } catch (\Throwable $e) {
-            Log::error('WPForms webhook Lead::create failed', ['error' => $e->getMessage(), 'trace' => $e->getTraceAsString()]);
+            Log::error('Webhook Lead::create failed', ['error' => $e->getMessage()]);
             throw $e;
         }
 
-        Log::info('WPForms webhook lead created', ['lead_id' => $leadId]);
+        Log::info('Webhook lead created', ['lead_id' => $leadId]);
+
         return response()->json(['success' => true, 'lead_id' => $leadId]);
     }
 
-    /**
-     * Map WPForms "fields" array to flat keys we expect.
-     * WPForms may send fields by id/label; map by position or by name when present.
-     */
+    // ── Private helpers ───────────────────────────────────────────────────────
+
     private function mapFieldsArrayToFlat(array $fields, array $existing): array
     {
-        $flat = $existing;
+        $flat    = $existing;
         $byIndex = [
             'client_name', 'client_email', 'client_phone', 'client_ideal_date',
-            'origin_state', 'origin_city', 'origin_floor', 'origin_haulage',
-            'destination_state', 'destination_city', 'destination_floor', 'destination_haulage',
-            'client_packing', 'client_items', 'client_other_item', 'client_invent',
-            'client_service_modality', 'client_safe_mode', 'client_insurance_val', 'client_terms',
+            'origin_state', 'origin_city', 'origin_floor', 'origin_elevator',
+            'origin_haulage', 'destination_state', 'destination_city',
+            'destination_floor', 'destination_elevator', 'destination_haulage',
+            'client_invent', 'client_packing', 'client_items', 'client_other_item',
+            'client_service_modality', 'client_safe_mode', 'client_insurance_val',
         ];
         foreach ($fields as $i => $field) {
             $value = is_array($field) ? ($field['value'] ?? $field['values'][0] ?? '') : (string) $field;
-            if (isset($field['name']) && is_string($field['name'])) {
-                $flat[$field['name']] = $value;
-            } elseif (isset($field['key']) && is_string($field['key'])) {
-                $flat[$field['key']] = $value;
-            } elseif (isset($byIndex[$i])) {
-                $flat[$byIndex[$i]] = $value;
-            }
+            if (isset($field['name']) && is_string($field['name']))       $flat[$field['name']] = $value;
+            elseif (isset($field['key']) && is_string($field['key']))     $flat[$field['key']]  = $value;
+            elseif (isset($byIndex[$i]))                                   $flat[$byIndex[$i]]   = $value;
         }
         return $flat;
     }
@@ -131,12 +157,22 @@ class LeadController extends Controller
         return $s === '' ? null : $s;
     }
 
+    private function parseBool(mixed $value): bool
+    {
+        if (is_bool($value)) return $value;
+        return in_array(strtolower((string) ($value ?? '')), ['1', 'true', 'yes', 'sí', 'si'], true);
+    }
+
+    private function parseMeters(mixed $value): int
+    {
+        $n = (int) preg_replace('/[^0-9]/', '', (string) ($value ?? ''));
+        return $n > 0 ? $n : 30;
+    }
+
     private function parseSpanishDate(string $value): string
     {
         $value = trim($value);
-        if ($value === '') {
-            return now()->addDays(7)->toDateString();
-        }
+        if ($value === '') return now()->addDays(7)->toDateString();
         foreach (self::SPANISH_MONTHS as $es => $en) {
             $value = preg_replace('/\b' . $es . '\b/ui', $en, $value);
         }
